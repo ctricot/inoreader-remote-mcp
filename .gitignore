@@ -1,0 +1,20 @@
+# Secrets and tokens: never in the repository
+.env
+.env.*
+!.env.example
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/

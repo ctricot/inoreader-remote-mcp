@@ -1,0 +1,32 @@
+# Production stack, behind a reverse proxy that terminates TLS.
+#
+# - No published port: the container is only reachable on the external `proxy` network,
+#   shared with the reverse proxy (forward to http://inoreader-remote-mcp:8000).
+# - `./data` holds the token files (Inoreader and OAuth); back it up, keep it private.
+# - The Watchtower label lets a Watchtower running with `WATCHTOWER_LABEL_ENABLE=true`
+#   pull each new `:latest` image. Without Watchtower, update by hand (see README).
+
+services:
+  inoreader-remote-mcp:
+    image: ghcr.io/ctricot/inoreader-remote-mcp:${IMAGE_TAG:-latest}
+    container_name: inoreader-remote-mcp
+    restart: unless-stopped
+    env_file: ./.env
+    environment:
+      - DATA_DIR=/data
+    user: "1000:100"
+    volumes:
+      - ./data:/data
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+    logging:
+      driver: json-file
+      options:
+        max-size: "5mb"
+        max-file: "3"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

@@ -1,0 +1,14 @@
+# Secrets and tokens must never enter an image: `.env` is read at start, `data/` is a volume.
+.env
+.env.*
+data/
+
+.venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+tests
+.git
+.github
+.DS_Store
