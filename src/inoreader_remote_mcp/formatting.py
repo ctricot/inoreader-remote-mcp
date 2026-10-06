@@ -18,6 +18,9 @@ READING_LIST = "user/-/state/com.google/reading-list"
 STARRED = "user/-/state/com.google/starred"
 READ = "user/-/state/com.google/read"
 
+# Inoreader's fixed name for the folder whose sub-folders are keyword-monitoring feeds.
+DYNAMIC_FOLDERS = "Dynamic Folders"
+
 _LABEL = re.compile(r"^user/[^/]+/label/(.+)$")
 _STATE = re.compile(r"^user/[^/]+/state/")
 

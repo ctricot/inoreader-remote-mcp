@@ -5,8 +5,10 @@ about a hundred requests per zone, and a tool that paginates or enriches behind 
 back would spend it without anyone seeing. Pagination is handed to Claude instead —
 `continuation` goes out with a page and comes back for the next one.
 
-`add_subscription` is the exception: `quickadd` takes no folder and no title, so setting
+Two exceptions. `add_subscription`: `quickadd` takes no folder and no title, so setting
 them costs a second write (`subscription/edit`), only when asked for.
+`get_folders_and_tags`: the sub-folders of Dynamic Folders are feeds, not labels, so their
+names and counts cost `subscription/list` and `unread-count`, only when that folder exists.
 
 Descriptions are in French, short, and say what comes back.
 """
@@ -92,6 +94,7 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
     async def get_folders_and_tags() -> dict[str, Any]:
         payload = await client.get("tag/list", {"types": 1, "counts": 1})
         folders, tags = [], []
+        dynamic: dict[str, Any] | None = None
         for tag in payload.get("tags", []):
             stream_id = tag.get("id", "")
             if fmt.is_state(stream_id):
@@ -103,8 +106,12 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
             }
             if tag.get("type") == "folder":
                 folders.append(entry)
+                if entry["name"] == fmt.DYNAMIC_FOLDERS:
+                    dynamic = entry
             elif tag.get("type") == "tag":
                 tags.append(entry)
+        if dynamic is not None:
+            dynamic["subfolders"] = await _dynamic_subfolders(client)
         return {"folders": folders, "tags": tags}
 
     async def get_articles(
@@ -215,7 +222,9 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
         (
             get_folders_and_tags,
             "Dossiers et tags",
-            "Renvoie les dossiers et les tags, avec leur nombre de non-lus.",
+            "Renvoie les dossiers et les tags, avec leur nombre de non-lus. "
+            "Le dossier Dynamic Folders porte en plus ses sous-dossiers (`subfolders`) : "
+            "identifiant du flux, nom, non-lus.",
             READ_ONLY,
         ),
         (
@@ -263,6 +272,19 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
     ]
     for fn, title, description, hints in tools:
         server.add_tool(fn, title=title, description=description, annotations=hints)
+
+
+async def _dynamic_subfolders(client: InoreaderClient) -> list[dict[str, Any]]:
+    subscriptions = await client.get("subscription/list")
+    unread = {
+        entry.get("id"): int(entry.get("count", 0))
+        for entry in (await client.get("unread-count")).get("unreadcounts", [])
+    }
+    return [
+        {"id": sub.get("id"), "name": sub.get("title"), "unread": unread.get(sub.get("id"), 0)}
+        for sub in subscriptions.get("subscriptions", [])
+        if fmt.DYNAMIC_FOLDERS in (c.get("label") for c in sub.get("categories", []))
+    ]
 
 
 def _stream_path(stream_id: str) -> str:

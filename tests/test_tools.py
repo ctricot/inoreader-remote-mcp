@@ -156,6 +156,53 @@ async def test_get_folders_and_tags(server):
 
 
 @respx.mock
+async def test_get_folders_and_tags_lists_dynamic_subfolders(server):
+    respx.get(f"{API_BASE}tag/list").respond(
+        json={
+            "tags": [
+                {"id": "user/1/label/Dynamic Folders", "type": "folder", "unread_count": 3},
+                {"id": "user/1/label/Tech", "type": "folder", "unread_count": 4},
+            ]
+        }
+    )
+    dynamic = {"id": "user/1/label/Dynamic Folders", "label": "Dynamic Folders"}
+    respx.get(f"{API_BASE}subscription/list").respond(
+        json={
+            "subscriptions": [
+                {"id": "feed/keyword-monitoring-1", "title": "Health", "categories": [dynamic]},
+                {"id": "feed/keyword-monitoring-2", "title": "Quiet", "categories": [dynamic]},
+                {
+                    "id": "feed/keyword-monitoring-3",
+                    "title": "Elsewhere",
+                    "categories": [{"id": "user/1/label/Tech", "label": "Tech"}],
+                },
+            ]
+        }
+    )
+    respx.get(f"{API_BASE}unread-count").respond(
+        json={
+            "unreadcounts": [
+                {"id": "feed/keyword-monitoring-1", "count": 3},
+                {"id": "feed/keyword-monitoring-3", "count": 9},
+            ]
+        }
+    )
+    out = await call(server, "get_folders_and_tags")
+    assert out["folders"] == [
+        {
+            "id": "user/1/label/Dynamic Folders",
+            "name": "Dynamic Folders",
+            "unread": 3,
+            "subfolders": [
+                {"id": "feed/keyword-monitoring-1", "name": "Health", "unread": 3},
+                {"id": "feed/keyword-monitoring-2", "name": "Quiet", "unread": 0},
+            ],
+        },
+        {"id": "user/1/label/Tech", "name": "Tech", "unread": 4},
+    ]
+
+
+@respx.mock
 async def test_get_articles_defaults_to_unread_reading_list(server):
     route = stream_route().respond(json={"items": [ITEM], "continuation": "next"})
     out = await call(server, "get_articles")
