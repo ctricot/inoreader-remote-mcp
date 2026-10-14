@@ -238,6 +238,38 @@ async def test_get_articles_with_every_parameter(server):
     assert out == {"articles": [], "continuation": None}
 
 
+@respx.mock
+async def test_get_articles_query_filters_the_page(server):
+    other = {**ITEM, "id": "2", "title": "Sans rapport", "summary": {"content": "rien"}}
+    hit = {
+        **ITEM,
+        "id": "1",
+        "title": "Cyberattaque",
+        "summary": {"content": "Frigos <b>piratés</b>"},
+    }
+    route = stream_route().respond(json={"items": [other, hit], "continuation": "next"})
+    out = await call(server, "get_articles", query="CYBERATTAQUE pirates")
+    assert [a["id"] for a in out["articles"]] == ["1"]
+    assert out["scanned"] == 2 and out["matched"] == 1
+    assert out["continuation"] == "next"
+    assert "q" not in route.calls.last.request.url.params
+
+
+@respx.mock
+async def test_get_articles_query_reports_no_match(server):
+    stream_route().respond(json={"items": [ITEM]})
+    out = await call(server, "get_articles", query="introuvable")
+    assert out["articles"] == [] and out["scanned"] == 1 and out["matched"] == 0
+
+
+@respx.mock
+async def test_get_articles_query_ignores_accents_and_case(server):
+    item = {**ITEM, "title": "Sécurité des ÉCOLES"}
+    stream_route().respond(json={"items": [item]})
+    out = await call(server, "get_articles", query="securite ecoles")
+    assert out["matched"] == 1
+
+
 async def test_get_articles_rejects_bad_input(server):
     assert "ISO 8601" in await call_error(server, "get_articles", since="yesterday")
     await call_error(server, "get_articles", limit=101)

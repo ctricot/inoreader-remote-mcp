@@ -131,6 +131,13 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
                 "Sans fuseau, UTC."
             ),
         ] = None,
+        query: Annotated[
+            str | None,
+            Field(
+                description="Mots à trouver dans le titre ou le résumé (tous requis, sans "
+                "tenir compte des majuscules ni des accents). Filtre la page récupérée."
+            ),
+        ] = None,
         continuation: Continuation = None,
     ) -> dict[str, Any]:
         params: dict[str, Any] = {"n": limit}
@@ -141,7 +148,7 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
         if continuation:
             params["c"] = continuation
         payload = await client.get(_stream_path(stream_id or fmt.READING_LIST), params)
-        return fmt.articles_page(payload)
+        return fmt.articles_page(payload, query)
 
     async def get_starred_articles(
         limit: Limit = 20, continuation: Continuation = None
@@ -233,7 +240,11 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
             "Renvoie les articles d'un flux, d'un dossier ou de tout le compte, du plus récent "
             "au plus ancien : identifiant, titre, adresse, flux, date de publication, "
             "date de collecte (crawlTimeMsec), résumé en texte brut (500 caractères). "
-            "Renvoie aussi `continuation` s'il reste des articles.",
+            "Renvoie aussi `continuation` s'il reste des articles. "
+            "Avec `query`, ne garde que les articles contenant tous les mots, et indique "
+            "`scanned` (articles examinés) et `matched` : l'API n'a pas de recherche, "
+            "le filtre porte sur la page récupérée. Pour chercher un sujet, prends "
+            "`limit=100`, borne avec `since`, et suis `continuation` si besoin.",
             READ_ONLY,
         ),
         (

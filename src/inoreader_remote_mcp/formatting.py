@@ -7,6 +7,7 @@ items with full HTML summaries would fill a conversation on its own.
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import UTC, datetime
 from html import unescape
 from html.parser import HTMLParser
@@ -97,12 +98,31 @@ def article(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def articles_page(payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "articles": [article(item) for item in payload.get("items", [])],
-        # Absent on the last page; Claude passes it back as `continuation` for the next.
-        "continuation": payload.get("continuation") or None,
-    }
+def _fold(text: str) -> str:
+    """Lower-case and accent-free, so `securite` finds `Sécurité`."""
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
+
+
+def matches(item: dict[str, Any], terms: list[str]) -> bool:
+    """Every term appears in the title or the full summary (not the truncated one)."""
+    summary = (item.get("summary") or {}).get("content") or ""
+    haystack = _fold(f"{html_to_text(item.get('title') or '')} {html_to_text(summary)}")
+    return all(term in haystack for term in terms)
+
+
+def articles_page(payload: dict[str, Any], query: str | None = None) -> dict[str, Any]:
+    items = payload.get("items", [])
+    page: dict[str, Any] = {}
+    if query and (terms := _fold(query).split()):
+        kept = [item for item in items if matches(item, terms)]
+        # Said out loud so that an empty result is not mistaken for « nothing exists ».
+        page["scanned"], page["matched"] = len(items), len(kept)
+        items = kept
+    page["articles"] = [article(item) for item in items]
+    # Absent on the last page; Claude passes it back as `continuation` for the next.
+    page["continuation"] = payload.get("continuation") or None
+    return page
 
 
 def feed_stream_id(url_or_id: str) -> str:

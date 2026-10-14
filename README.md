@@ -18,7 +18,7 @@ requests per day per zone on the Pro plan):
 | `get_unread_counts` | Unread counts: total, per folder, per feed |
 | `get_subscriptions` | Subscriptions: id, title, feed URL, site URL, folders |
 | `get_folders_and_tags` | Folders and tags, with unread counts; Dynamic Folders also lists its sub-folders |
-| `get_articles` | Articles of a feed, a folder or the whole account (`stream_id`, `unread_only`, `limit` ≤ 100, `since`, `continuation`) |
+| `get_articles` | Articles of a feed, a folder or the whole account (`stream_id`, `unread_only`, `limit` ≤ 100, `since`, `query`, `continuation`) |
 | `get_starred_articles` | Starred articles (`limit`, `continuation`) |
 | `add_subscription` | Subscribe to a feed, optionally into a folder and with a title (a second call only then) |
 | `remove_subscription` | Unsubscribe — Claude is told to ask for confirmation first |
