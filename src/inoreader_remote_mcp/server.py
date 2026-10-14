@@ -28,6 +28,17 @@ abonnements.
 
 L'API Inoreader limite le nombre d'appels par jour : évite les appels inutiles, et préfère
 un appel avec `limit` élevé à plusieurs petits appels.
+
+Chercher un sujet dans les articles : Inoreader n'a pas de recherche par API. Quand
+l'utilisateur parle de « mes articles » ou de ses flux, la réponse est dans Inoreader, pas
+sur le web. Appelle `get_articles` avec `query`, `limit=100` et `since` (la période voulue),
+sur le dossier le plus probable (`get_folders_and_tags` les liste). `scanned` dit combien
+d'articles ont été examinés : s'il reste une `continuation`, suis-la plutôt que d'élargir
+`since` à l'aveugle, et dis à l'utilisateur ce qui a été couvert avant de conclure qu'il n'y
+a rien. Les sous-dossiers de Dynamic Folders sont déjà des surveillances par mot-clé.
+
+Marquer comme lu : ne marque que des articles que tu as trouvés et montrés. Pour vider tout
+un flux ou dossier, utilise `mark_all_as_read` avec `before`, après confirmation.
 """
 
 
