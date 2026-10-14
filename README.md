@@ -9,7 +9,7 @@ connector. Self-hosted, single user, one Docker container, no database.
 
 ## What it does
 
-Ten tools, each costing **one** Inoreader API call (Inoreader allows about a hundred
+Eleven tools, each costing **one** Inoreader API call (Inoreader allows about a hundred
 requests per day per zone on the Pro plan):
 
 | Tool | Returns |
@@ -23,6 +23,7 @@ requests per day per zone on the Pro plan):
 | `add_subscription` | Subscribe to a feed, optionally into a folder and with a title (a second call only then) |
 | `remove_subscription` | Unsubscribe — Claude is told to ask for confirmation first |
 | `mark_as_read` / `mark_as_unread` | Mark a list of articles, in a single call |
+| `mark_all_as_read` | Mark a whole feed or folder as read up to a date (`stream_id`, `before`) |
 
 Articles come back short: id, title, URL, feed name, publication date, `crawlTimeMsec` and a
 plain-text summary cut at 500 characters. Pagination is handed to Claude: a page carries a

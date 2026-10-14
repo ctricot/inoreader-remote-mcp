@@ -49,7 +49,7 @@ ITEM = {
 }
 
 
-async def test_ten_tools_with_french_descriptions(server):
+async def test_eleven_tools_with_french_descriptions(server):
     tools = {t.name: t for t in await server.list_tools()}
     assert sorted(tools) == sorted(
         [
@@ -62,6 +62,7 @@ async def test_ten_tools_with_french_descriptions(server):
             "add_subscription",
             "remove_subscription",
             "mark_as_read",
+            "mark_all_as_read",
             "mark_as_unread",
         ]
     )
@@ -343,6 +344,25 @@ async def test_mark_as_read_and_unread_in_one_call(server):
     assert await call(server, "mark_as_unread", article_ids=ids) == {"marked_unread": 2}
     assert form(route) == {"r": [READ], "i": ids}
     assert route.call_count == 2
+
+
+@respx.mock
+async def test_mark_all_as_read_sends_stream_and_timestamp(server):
+    route = respx.post(f"{API_BASE}mark-all-as-read").respond(text="OK")
+    out = await call(
+        server,
+        "mark_all_as_read",
+        stream_id="user/-/label/Actualités",
+        before="2026-10-14T12:00:00+02:00",
+    )
+    assert form(route) == {"s": ["user/-/label/Actualités"], "ts": ["1791972000"]}
+    assert out == {"stream_id": "user/-/label/Actualités", "before": "2026-10-14T12:00:00+02:00"}
+
+
+async def test_mark_all_as_read_needs_a_readable_date(server):
+    assert "ISO 8601" in await call_error(
+        server, "mark_all_as_read", stream_id="feed/x", before="hier"
+    )
 
 
 async def test_mark_requires_ids(server):

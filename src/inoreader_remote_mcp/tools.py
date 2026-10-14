@@ -1,4 +1,4 @@
-"""The ten MCP tools.
+"""The eleven MCP tools.
 
 **One Inoreader call per tool call**, with one exception said below: the daily quota is
 about a hundred requests per zone, and a tool that paginates or enriches behind Claude's
@@ -199,6 +199,22 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
         _expect_ok(response, "edit-tag")
         return {"marked_read": len(article_ids)}
 
+    async def mark_all_as_read(
+        stream_id: Annotated[
+            str, Field(description="Flux (`feed/…`) ou dossier (`user/-/label/…`) à vider.")
+        ],
+        before: Annotated[
+            str,
+            Field(
+                description="Date ISO 8601 : seuls les articles collectés avant sont marqués. "
+                "Sans fuseau, UTC. Donne l'instant de ta dernière lecture de la liste."
+            ),
+        ],
+    ) -> dict[str, Any]:
+        response = await client.post("mark-all-as-read", {"s": stream_id, "ts": _epoch(before)})
+        _expect_ok(response, "mark-all-as-read")
+        return {"stream_id": stream_id, "before": before}
+
     async def mark_as_unread(article_ids: ArticleIds) -> dict[str, Any]:
         response = await client.post("edit-tag", {"r": fmt.READ, "i": article_ids})
         _expect_ok(response, "edit-tag")
@@ -272,6 +288,15 @@ def register(server: MCPServer, client: InoreaderClient) -> None:
             mark_as_read,
             "Marquer comme lu",
             "Marque des articles comme lus. Renvoie le nombre d'articles marqués.",
+            IDEMPOTENT_WRITE,
+        ),
+        (
+            mark_all_as_read,
+            "Tout marquer comme lu",
+            "Marque comme lus tous les articles d'un flux ou d'un dossier collectés avant "
+            "une date, en un seul appel. Irréversible en bloc : demande confirmation à "
+            "l'utilisateur, en nommant le flux ou le dossier, avant d'appeler cet outil. "
+            "Préfère mark_as_read pour une sélection d'articles.",
             IDEMPOTENT_WRITE,
         ),
         (
