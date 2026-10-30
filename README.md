@@ -136,14 +136,9 @@ Try: « Combien d'articles non lus ai-je sur Inoreader ? »
 
 ## Updating
 
-The CI publishes `ghcr.io/ctricot/inoreader-remote-mcp:latest` and `:sha-<commit>` on every
-push to `main`.
-
-- **Automatic**: the compose file carries the label
-  `com.centurylinklabs.watchtower.enable=true`; a Watchtower running with
-  `WATCHTOWER_LABEL_ENABLE=true` pulls each new image.
-- **Manual**: `docker compose pull && docker compose up -d`.
-- **Roll back**: `IMAGE_TAG=sha-<commit> docker compose up -d`.
+The CI no longer publishes an image: it only runs the gate (ruff and pytest). To deploy,
+build the image yourself (`docker build -t inoreader-remote-mcp .`) and point `image:` in
+`docker-compose.yml` at it, or publish it to a registry of your choice.
 
 Tokens survive updates: Claude stays connected, Inoreader stays authorised.
 
